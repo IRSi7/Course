@@ -199,7 +199,7 @@ void i_know_de_way(EDGE *first, EDGE *answer, int count, int &sum)
     cur = first;
     int uno;
     int tuno;
-    counter;
+
     ///Цикл соединяет все компоненты в одну большую
     while (counter != 1) {
         one = false;
@@ -232,7 +232,11 @@ void i_know_de_way(EDGE *first, EDGE *answer, int count, int &sum)
             sum += cur->heft;
             all[uno]->uni(all[tuno]);
             all[tuno] = nullptr;
+            if(counter - 1 > tuno)
+                for (int i = tuno; i < counter - 1; i++)
+                    all[i] = all[i + 1];
             counter--;
+            all[counter] = nullptr;
         }
         cur = cur->next;
     }
