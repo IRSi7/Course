@@ -1,0 +1,267 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+bool find(string *b, string a, int count)
+{
+    for(int i = 0; i < count; i++){
+        if(b[i] == a)
+            return false;
+    }
+    return true;
+}
+
+class EDGE
+{
+public:
+    string from;
+    string to;
+    unsigned short heft = 0;
+    EDGE *prev = nullptr;
+    EDGE *next = nullptr;
+
+    bool add(unsigned short h, string f, string t)
+    {
+        if(heft != 0){
+            if(next == nullptr){
+                next = new EDGE;
+                next->prev = this;
+            }
+            next->add(h,f,t);
+        }
+        else{
+            heft = h;
+            from = f;
+            to = t;
+        }
+    }
+    bool drop(){
+        if(prev != nullptr)
+            prev->next = this->next;
+        if(next != nullptr)
+            next->prev = this->prev;
+    }
+    void swap(EDGE &who){
+        EDGE *what = new EDGE(who);
+        who = *this;
+        who.prev = what->prev;
+        who.next = what->next;
+        what->prev = this->prev;
+        what->next = this->next;
+        *this = *what;
+        delete what;
+    }
+};
+
+class COMP
+{
+public:
+    string smezh[50];
+    int count = 0;
+
+    bool check(string a)
+    {
+        return find(smezh,a,count);
+    }
+
+    bool add(string a)
+    {
+        smezh[count] = a;
+        count++;
+    }
+
+    bool uni(COMP *second)
+    {
+        for(int i = 0; i < second->count; i++)
+            add(second->smezh[i]);
+        delete second;
+    }
+};
+
+void sort(EDGE *first)
+{
+    EDGE *cur = first;
+    int count = 0;
+    while(cur->next != nullptr) {
+        cur = cur->next;
+        count++;
+    }
+    for(int i = 0; i < count; i++)
+    {
+        cur = first;
+        for(int j = 0; j < count - i; j++){
+            if(cur->heft > cur->next->heft)
+                cur->swap(*cur->next);
+            cur = cur->next;
+        }
+    }
+    while(first->prev != nullptr)
+        first = first->prev;
+}
+void read_EDGEs(EDGE *first, string *b, int *counter){
+    ifstream fin("C:\\Users\\romar\\CLionProjects\\untitled4\\input.txt");
+    if (!fin.is_open()) // если файл небыл открыт
+    {
+        cout << "Файл не может быть открыт или создан\n"; // напечатать соответствующее сообщение
+        return; // выполнить выход из программы
+    }
+    char c;
+    short count = 0;
+    string from;
+    string to;
+    int weight;
+    while(!fin.eof()) {
+        fin >> from >> to >> weight;
+        if(find(b,from,*counter)){
+            b[*counter] = from;
+            (*counter)++;
+        }
+        if(find(b,to,*counter)){
+            b[*counter] = to;
+            (*counter)++;
+        }
+        first->add(weight, from, to);
+    }
+    fin.close();
+}
+void i_know_de_way(EDGE *first, EDGE *answer, int count, int &sum)
+{
+    int counter = 0;
+    EDGE *cur = first;
+    COMP final;
+    bool one;
+    COMP *all[50];
+
+    final.add(cur->from);
+    final.add(cur->to);
+    answer->add(cur->heft,cur->from,cur->to);
+    cur->drop();
+    counter++;
+    counter++;
+    sum += cur->heft;
+    first = first->next;
+    ///Цикл разбивает граф на компонеты связности, не запоминая их
+    while (cur->next != nullptr) {
+        one = false;
+        if (final.check(cur->to)) {
+            answer->add(cur->heft, cur->from, cur->to);
+            final.add(cur->to);
+            sum += cur->heft;
+            one = true;
+            counter++;
+        }
+        if (final.check(cur->from)) {
+            if (!one) {
+                answer->add(cur->heft, cur->from, cur->to);
+                final.add(cur->from);
+                sum += cur->heft;
+            }
+            final.add(cur->from);
+            one = true;
+            counter++;
+        }
+        if (one) {
+            cur->drop();
+            if (cur == first)
+                first = first->next;
+        }
+        cur = cur->next;
+    }
+
+    cur = answer;
+    counter = 0;
+    all[counter] = new COMP;
+    all[counter]->add(cur->from);
+    all[counter]->add(cur->to);
+    counter++;
+
+    ///Цикл запоминает компоненты связности
+    while (cur->next != nullptr) {
+        cur = cur->next;
+        one = false;
+        for(int i = 0; i < counter; i++) {
+            if (!all[i]->check(cur->to) && all[i]->check(cur->from)) {
+                all[i]->add(cur->from);
+                one = true;
+            }
+            if (!all[i]->check(cur->from) && all[i]->check(cur->to)) {
+                all[i]->add(cur->to);
+                one = true;
+            }
+        }
+        if (!one) {
+            all[counter] = new COMP;
+            all[counter]->add(cur->from);
+            all[counter]->add(cur->to);
+            counter++;
+        }
+    }
+
+    cur = first;
+    int uno;
+    int tuno;
+    counter;
+    ///Цикл соединяет все компоненты в одну большую
+    while (counter != 1) {
+        one = false;
+        uno = -1;
+        tuno = -1;
+        for(int i = 0; i < counter; i++) {
+            if (!all[i]->check(cur->to) && !all[i]->check(cur->from)) { ///Ребро вызывает цикл в одной из компонент
+                one = true;
+                break;
+            }
+            if(!all[i]->check(cur->to)) {
+                if (uno == -1)
+                    uno = i;
+                else {
+                    tuno = i;
+                    break; ///Нашли две компоненты связности для обьединения
+                }
+            }
+            if(!all[i]->check(cur->from)){
+                if(uno == -1)
+                    uno = i;
+                else {
+                    tuno = i;
+                    break; ///Нашли две компоненты связности для обьединения
+                }
+            }
+        }
+        if (!one) { ///Если после добавления ребра цикл не был получен
+            answer->add(cur->heft, cur->from, cur->to);
+            sum += cur->heft;
+            all[uno]->uni(all[tuno]);
+            all[tuno] = nullptr;
+            counter--;
+        }
+        cur = cur->next;
+    }
+}
+
+int main() {
+    setlocale(LC_ALL, "rus");
+    string before[50];
+    int count = 0;
+    int sum = 0;
+    EDGE root;
+    EDGE answer;
+    read_EDGEs(&root,before,&count);
+    sort(&root);
+    i_know_de_way(&root,&answer,count,sum);
+
+    EDGE *p = &answer;
+    ofstream fout("C:\\Users\\romar\\CLionProjects\\untitled4\\answer.txt");
+    if (!fout.is_open()) // если файл небыл открыт
+    {
+        cout << "Файл не может быть открыт или создан\n"; // напечатать соответствующее сообщение
+        return -1; // выполнить выход из программы
+    }
+    while(p->next != nullptr) {
+        fout << p->from << " " << p->to << endl;
+        p = p->next;
+    }
+    fout << p->from << " " << p->to << endl;
+    fout << sum;
+    fout.close();
+    return 0;
+}
